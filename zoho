@@ -1,0 +1,201 @@
+
+   
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.util.*;
+
+public class Main {
+    static Node[] nodes = new Node[100];
+    static User[] users = new User[1000];
+    static int nodeCount = 0;
+    static int userCount = 0;
+    static HashMap<String, Integer> hashMap = new HashMap<>();
+    static HashMap<String, Integer> userMap = new HashMap<>();
+    static Node root;
+
+    static Node initialize(String role, String parent){
+        hashMap.put(role, nodeCount);
+        nodes[nodeCount] = new Node(role, parent);
+        return nodes[nodeCount];
+    }
+
+    static void addSubRole(String child, String parent){
+        initialize(child, parent);
+        nodes[hashMap.get(parent)].children.add(nodes[nodeCount]);
+        nodeCount++;
+    }
+
+    static void displayRoles(){
+        // Level order traversal
+        Queue<Node> queue = new LinkedList<>();
+        queue.add(root);
+        while (!queue.isEmpty()) {
+            Node temp = queue.poll();
+            System.out.print(temp.role + ", ");
+            queue.addAll(temp.children);
+        }
+        System.out.println();
+    }
+
+    static void deleteRole(String delRole, String transRole){
+        int delIndex = hashMap.get(delRole);
+        int transIndex = hashMap.get(transRole);
+        nodes[transIndex].parent = nodes[delIndex].parent;
+        for(Node node:nodes[delIndex].children){
+            if(nodes[transIndex]!=node) {
+                nodes[transIndex].children.add(node);
+                for(User user:node.users){
+                    nodes[delIndex].users.remove(user);
+                    nodes[transIndex].users.add(user);
+                    user.role = transRole;
+                }
+                node.parent = transRole;
+            }
+        }
+        nodes[hashMap.get(nodes[delIndex].parent)].children.remove(nodes[delIndex]);
+    }
+
+    static void addUser(String user, String role){
+        users[userCount] = new User(user, role);
+        nodes[hashMap.get(role)].users.add(users[userCount]);
+        userMap.put(user, userCount);
+        userCount++;
+    }
+
+    static void displayUsers(){
+        for(int i=0;i<userCount;i++){
+            if(!users[i].isDeleted)
+                System.out.println(users[i].name+" - "+users[i].role);
+        }
+    }
+
+    static void displayUserandSubUsers(){
+        for(int i=0;i<userCount;i++){
+            if(!users[i].isDeleted){
+                System.out.print(users[i].name+" - ");
+                Queue<Node> queue = new LinkedList<>();
+                queue.add(nodes[hashMap.get(users[i].role)]);
+                while (!queue.isEmpty()) {
+                    Node temp = queue.poll();
+                    for (Node node: temp.children) {
+                        for(User user: node.users) {
+                            if(!user.isDeleted)
+                                System.out.print(user.name + ", ");
+                        }
+                    }
+                    queue.addAll(temp.children);
+                }
+                System.out.println();
+            }
+        }
+    }
+
+    static void deleteUser(String user){
+        users[userMap.get(user)].isDeleted=true;
+    }
+
+    static int topUsers(String role){
+        int roleIndex = hashMap.get(role);
+        String parent = "";
+        int count = 0;
+        while(true){
+            for(User user:nodes[roleIndex].users){
+                if(!user.isDeleted)
+                    count++;
+            }
+            if(nodes[roleIndex].parent.equals(""))
+                break;
+            roleIndex = hashMap.get(nodes[roleIndex].parent);
+        }
+        return count;
+    }
+    public static void main(String[] args) throws IOException {
+        BufferedReader bfn = new BufferedReader(new InputStreamReader(System.in));
+        System.out.print("Enter root role name : ");
+        String rootRole = bfn.readLine();
+        root = initialize(rootRole, "");
+        nodeCount++;
+        System.out.println("Operations :");
+        System.out.println("1. Add Sub Role.");
+        System.out.println("2. Display Roles.");
+        System.out.println("3. Delete Role.");
+        System.out.println("4. Add user.");
+        System.out.println("5. Display Users.");
+        System.out.println("6. Display Users and Sub Users.");
+        System.out.println("7. Delete User.");
+        System.out.println("8. Number of users from top.");
+        while (true) {
+            System.out.println("Operation to be performed :");
+            String op = bfn.readLine();
+            switch (Integer.valueOf(op)){
+                case 1:
+                    System.out.println("Enter sub role name :");
+                    String child = bfn.readLine();
+                    System.out.println("Enter reporting to role name :");
+                    String parent = bfn.readLine();
+                    addSubRole(child, parent);
+                    break;
+                case 2:
+                    displayRoles();
+                    break;
+                case 3:
+                    System.out.println("Enter the role to be deleted :");
+                    String delRole = bfn.readLine();
+                    System.out.println("Enter the role to be transferred :");
+                    String transRole = bfn.readLine();
+                    deleteRole(delRole, transRole);
+                    break;
+                case 4:
+                    System.out.println("Enter User Name :");
+                    String user = bfn.readLine();
+                    System.out.println("Enter Role :");
+                    String role = bfn.readLine();
+                    addUser(user, role);
+                    break;
+                case 5:
+                    displayUsers();
+                    break;
+                case 6:
+                    displayUserandSubUsers();
+                    break;
+                case 7:
+                    System.out.println("Enter username to be deleted :");
+                    String userDel = bfn.readLine();
+                    deleteUser(userDel);
+                    break;
+                case 8:
+                    System.out.println("Enter user name :");
+                    String username = bfn.readLine();
+                    System.out.println("Number of users from top : "+topUsers(username));
+                    break;
+                default:
+                    break;
+            }
+        }
+    }
+}
+class Node{
+    String role;
+    String parent;
+    HashSet<Node> children;
+    ArrayList<User> users;
+    Node(String role, String parent){
+        this.parent = parent;
+        this.role = role;
+        children = new HashSet<>();
+        users = new ArrayList<>();
+    }
+}
+
+class User{
+    String name;
+    String role;
+    boolean isDeleted;
+    User(String name, String role){
+        this.name = name;
+        this.role = role;
+        isDeleted = false;
+    }
+}
+
